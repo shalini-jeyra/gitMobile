@@ -16,8 +16,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-   late BuildContext _context;
-    @override
+  late BuildContext _context;
+  @override
   void initState() {
     super.initState();
     _context = context;
@@ -44,7 +44,10 @@ class _HomePageState extends State<HomePage> {
                   leading: Builder(
                     builder: (BuildContext context) {
                       return IconButton(
-                        onPressed: () {
+                        onPressed: () async {
+                          await Provider.of<GitHubProvider>(context,
+                                  listen: false)
+                              .fetchGitHubOrganizations();
                           Scaffold.of(context).openDrawer();
                         },
                         icon: const Icon(
@@ -107,7 +110,8 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                         child: widget.user.providerData[0].photoURL != null
-                            ? Image.network(widget.user.providerData[0].photoURL!)
+                            ? Image.network(
+                                widget.user.providerData[0].photoURL!)
                             : Icon(Icons.person),
                       ),
                       title: Text(
@@ -131,7 +135,8 @@ class _HomePageState extends State<HomePage> {
                               borderRadius:
                                   BorderRadius.all(Radius.circular(10)),
                             ),
-                            child: Text(widget.user.providerData[0].email ?? ''),
+                            child:
+                                Text(widget.user.providerData[0].email ?? ''),
                           ),
                         ],
                       ),
@@ -176,10 +181,12 @@ class _HomePageState extends State<HomePage> {
                         width: 1,
                       ),
                     ),
-                    child: const Icon(Icons.person),
+                    child: widget.user.providerData[0].photoURL != null
+                        ? Image.network(widget.user.providerData[0].photoURL!)
+                        : Icon(Icons.person),
                   ),
                   title: Text(
-                    'Ash',
+                    widget.user.providerData[0].displayName!,
                     style: TextFonts.primaryText,
                   ),
                   subtitle: Wrap(
@@ -193,8 +200,8 @@ class _HomePageState extends State<HomePage> {
                           color: Color.fromARGB(255, 212, 156, 33),
                           borderRadius: BorderRadius.all(Radius.circular(10)),
                         ),
-                        child: const Text(
-                          'VTS',
+                        child: Text(
+                          widget.user.providerData[0].email!,
                           style: TextStyle(color: Colors.white),
                         ),
                       ),
@@ -203,47 +210,39 @@ class _HomePageState extends State<HomePage> {
                   onTap: () {},
                 ),
               ),
-              ListTile(
-                leading: Container(
-                  height: 50,
-                  width: 50,
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.all(Radius.circular(10)),
-                    border: Border.all(
-                      color: const Color.fromARGB(
-                        255,
-                        237,
-                        237,
-                        255,
+              ListView.builder(
+                  shrinkWrap: true,
+                  itemCount:
+                      Provider.of<GitHubProvider>(context).organizations.length,
+                  itemBuilder: (context, index) {
+                    final organization = Provider.of<GitHubProvider>(context)
+                        .organizations[index];
+
+                    final String orgName = organization['login'];
+                    final String orgImageUrl = organization['avatar_url'];
+
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundImage: NetworkImage(orgImageUrl),
                       ),
-                      width: 1,
-                    ),
-                  ),
-                  child: const Icon(Icons.person),
-                ),
-                title: const Text('Option 1'),
-                onTap: () {},
-              ),
+                      title: Text(orgName),
+                      onTap: () {},
+                    );
+                  }),
               ListTile(
-                leading: Container(
-                  height: 50,
-                  width: 50,
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.all(Radius.circular(10)),
-                    border: Border.all(
-                      color: const Color.fromARGB(
-                        255,
-                        237,
-                        237,
-                        255,
-                      ),
-                      width: 1,
-                    ),
-                  ),
-                  child: const Icon(Icons.person),
+                leading: IconButton(
+                  icon: Icon(Icons.logout),
+                  onPressed: () {},
                 ),
-                title: const Text('Option 2'),
-                onTap: () {},
+                title: Text('Logout'),
+                onTap: () {
+                  final provider = Provider.of<GitHubProvider>(context, listen: false);
+              provider.logout();
+                  Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                          builder: (BuildContext context) => LoginPage()));
+                },
               ),
             ],
           ),
@@ -324,26 +323,28 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               ),
                               trailing: const Icon(Icons.chevron_right),
-                        onTap: () async {
-      try {
-        await Provider.of<GitHubProvider>(_context, listen: false)
-            .fetchBranches(ownerName, repoName);
+                              onTap: () async {
+                                try {
+                                  final context = _context;
+                                  await Provider.of<GitHubProvider>(context,
+                                          listen: false)
+                                      .fetchBranches(ownerName, repoName);
 
-        Navigator.push(
-          _context,
-          MaterialPageRoute(
-            builder: (context) => RepositoryViewPage(
-              ownerIconUrl: ownerIconUrl,
-              ownerName: ownerName,
-              repoName: repoName,
-            ),
-          ),
-        );
-      } catch (e) {
-        print('Error: $e');
-      }
-    },
-
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (BuildContext context) =>
+                                          RepositoryViewPage(
+                                        ownerIconUrl: ownerIconUrl,
+                                        ownerName: ownerName,
+                                        repoName: repoName,
+                                      ),
+                                    ),
+                                  );
+                                } catch (e) {
+                                  print('Error: $e');
+                                }
+                              },
                             ),
                           );
                         },

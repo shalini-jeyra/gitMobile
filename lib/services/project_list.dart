@@ -34,7 +34,7 @@ Future<List<dynamic>> fetchProjectsByUsername(String accessToken, String usernam
   );
 
   if (response.statusCode == 200) {
-    print(response.body);
+   
     final List<dynamic> projects = json.decode(response.body);
     return projects;
   } else {

@@ -121,7 +121,7 @@ class RepositoryViewPage extends StatelessWidget {
     return Scaffold(
         appBar: _appBar(AppBar().preferredSize.height),
         body: Consumer<GitHubProvider>(builder: (context, provider, _) {
-          print(provider.branches);
+    
           if (provider.branches == null) {
             return Center(
               child: CircularProgressIndicator(),

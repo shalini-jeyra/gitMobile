@@ -15,7 +15,7 @@ void main()async {
 class MyApp extends StatelessWidget {
    final BranchService branchService;
 
-  const MyApp({required this.branchService});
+  const MyApp({super.key, required this.branchService});
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(

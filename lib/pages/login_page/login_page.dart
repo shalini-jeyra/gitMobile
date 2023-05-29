@@ -41,7 +41,7 @@ void _checkDeepLink(String link) {
   String code = link.substring(link.indexOf(RegExp('code=')) + 5);
   authService.loginWithGitHub(code,context).then((firebaseUser) {
     if (firebaseUser != null) {
-    print(firebaseUser);
+
  
       Navigator.pushReplacement(
         context,
