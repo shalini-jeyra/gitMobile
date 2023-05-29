@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import '../../styles/styles.dart';
 
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+  final String repoName;
+  final String ownerName;
+  final String ownerIconUrl;
+  const ProfilePage({super.key,required this.repoName, required this.ownerName, required this.ownerIconUrl});
 
   @override
   Widget build(BuildContext context) {

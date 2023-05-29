@@ -1,14 +1,15 @@
-import 'dart:math';
+import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_appauth/flutter_appauth.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:git_mobile/styles/styles.dart';
-// import 'package:firebase_auth_oauth/firebase_auth_oauth.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:uni_links/uni_links.dart';
+import '../../services/auth_service.dart';
 import '../pages.dart';
+import '../secret_keys.dart' as SecretKey;
+import 'package:url_launcher/url_launcher.dart';
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -17,49 +18,46 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  
-final storage = FlutterSecureStorage();
-void _signInWithGitHub(BuildContext context) async {
-  try {
-    final appAuth = FlutterAppAuth();
-    final state = _generateRandomState(); // Generate a random state value
+ 
+  final AuthService authService = AuthService();
+  late StreamSubscription _subs;
+@override
+void initState() {
+  _initDeepLinkListener();
+  super.initState();
+}
+@override
+void dispose() {
+  _disposeDeepLinkListener();
+  super.dispose();
+}
+void _initDeepLinkListener() async {
+  _subs = getLinksStream().listen((String? link) {
+    _checkDeepLink(link!);
+  }, cancelOnError: true);
+}
 
-    final result = await appAuth.authorizeAndExchangeCode(
-      AuthorizationTokenRequest(
-        'b2c95f389e7453a79adb',
-        'com.example.git_mobile://gitmobile-a680d.firebaseapp.com/__/auth/handler?state=$state',
-        serviceConfiguration: AuthorizationServiceConfiguration(
-          
-           authorizationEndpoint: 'https://github.com/login/oauth/authorize', tokenEndpoint: 'https://github.com/login/oauth/access_token',
-        ),
-        scopes: ['user', 'repo'],
-      ),
-    );
-
-    final credential = GithubAuthProvider.credential(result!.idToken!);
-
-    final authResult = await FirebaseAuth.instance.signInWithCredential(credential);
-    
-    if (authResult.user != null) {
-      Navigator.push(
+void _checkDeepLink(String link) {
+  String code = link.substring(link.indexOf(RegExp('code=')) + 5);
+  authService.loginWithGitHub(code,context).then((firebaseUser) {
+    if (firebaseUser != null) {
+    print(firebaseUser);
+ 
+      Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => HomePage()),
+        MaterialPageRoute(builder: (BuildContext context) => HomePage( user: firebaseUser,)),
       );
     } else {
-    
+      print("LOGIN ERROR: User is null");
     }
-  } catch (e) {
-    print('GitHub authentication failed: $e');
-  
-  }
+  }).catchError((e) {
+    print("LOGIN ERROR: " + e.toString());
+  });
 }
 
-String _generateRandomState() {
-  final random = Random();
-  return random.nextInt(999999).toString();
+void _disposeDeepLinkListener() {
+  _subs.cancel();
 }
-
 
 
   @override
@@ -96,11 +94,8 @@ String _generateRandomState() {
               ),
               ElevatedButton(
                 onPressed: () async {
-    //  _signInWithGitHub(context);
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (BuildContext context) => HomePage()));
+                  onClickGitHubLoginButton();
+    
                 },
                 style: ElevatedButton.styleFrom(
                   shape: RoundedRectangleBorder(
@@ -124,6 +119,23 @@ String _generateRandomState() {
       )),
     );
   }
+void onClickGitHubLoginButton() async {
+  const String authorizeUrl = 'https://github.com/login/oauth/authorize';
+  final String clientId = SecretKey.GITHUB_CLIENT_ID;
+  final List<String> scopes = ['public_repo', 'read:user', 'user:email', 'read:org'];
+
+  final String url = '$authorizeUrl?client_id=$clientId&scope=${scopes.join('%20')}';
+
+  if (await canLaunch(url)) {
+    await launch(
+      url,
+      forceSafariVC: false,
+      forceWebView: false,
+    );
+  } else {
+    print('CANNOT LAUNCH THIS URL!');
+  }
+}
 
 
 
