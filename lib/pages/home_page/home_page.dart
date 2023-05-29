@@ -7,13 +7,30 @@ import 'package:provider/provider.dart';
 import '../../services/provider.dart';
 import '../pages.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   final User user;
-  const HomePage({Key? key,required this.user}) : super(key: key);
+  const HomePage({Key? key, required this.user}) : super(key: key);
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+   late BuildContext _context;
+    @override
+  void initState() {
+    super.initState();
+    _context = context;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _context = context;
+  }
 
   @override
   Widget build(BuildContext context) {
-    
     _appBar(double height) => PreferredSize(
           preferredSize: Size(MediaQuery.of(context).size.width, height + 80),
           child: Stack(
@@ -89,10 +106,12 @@ class HomePage extends StatelessWidget {
                             width: 1,
                           ),
                         ),
-                        child:user.providerData[0].photoURL!=null?  Image.network(user.providerData[0].photoURL!):Icon(Icons.person),
+                        child: widget.user.providerData[0].photoURL != null
+                            ? Image.network(widget.user.providerData[0].photoURL!)
+                            : Icon(Icons.person),
                       ),
                       title: Text(
-                        user.providerData[0].displayName ?? '',
+                        widget.user.providerData[0].displayName ?? '',
                         style: TextFonts.primaryText,
                       ),
                       subtitle: Wrap(
@@ -112,7 +131,7 @@ class HomePage extends StatelessWidget {
                               borderRadius:
                                   BorderRadius.all(Radius.circular(10)),
                             ),
-                            child:  Text(user.providerData[0].email ?? ''),
+                            child: Text(widget.user.providerData[0].email ?? ''),
                           ),
                         ],
                       ),
@@ -126,13 +145,11 @@ class HomePage extends StatelessWidget {
         );
 
     return Scaffold(
-      
       appBar: _appBar(AppBar().preferredSize.height),
       drawer: Theme(
-         data: Theme.of(context).copyWith(
-      
-      highlightColor: const Color.fromARGB(255, 158, 179, 199),
-    ),
+        data: Theme.of(context).copyWith(
+          highlightColor: const Color.fromARGB(255, 158, 179, 199),
+        ),
         child: Drawer(
           shadowColor: Colors.white,
           backgroundColor: Colors.white,
@@ -247,77 +264,94 @@ class HomePage extends StatelessWidget {
             ),
             Expanded(
               child: FutureBuilder(
-                future: ProjectList().fetchGitHubProjects(context,Provider.of<GitHubProvider>(context).accessToken),
-                builder: (context,snapshot) {
-                   if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (snapshot.hasData) {
-            final repositories = snapshot.data!;
+                  future: ProjectList().fetchGitHubProjects(context,
+                      Provider.of<GitHubProvider>(context).accessToken),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    } else if (snapshot.hasData) {
+                      final repositories = snapshot.data!;
 
-            
-                  return ListView.separated(
-                    separatorBuilder: (BuildContext context, int index) {
-                      return const SizedBox(
-                        height: 16,
-                      );
-                    },
-                    itemCount: repositories.length,
-                    itemBuilder: (BuildContext context, int index) {
-                       final repo = repositories[index];
-                final String repoName = repo['name'];
-                final String ownerName = repo['owner']['login'];
-                final String ownerIconUrl = repo['owner']['avatar_url'];
-                      return Card(
-                        elevation: 0.5,
-                        color: Colors.white,
-                        child: ListTile(
-                          leading: Container(
-                            height: 50,
-                            width: 50,
-                            decoration: BoxDecoration(
-                              borderRadius:
-                                  const BorderRadius.all(Radius.circular(10)),
-                              border: Border.all(
-                                color: const Color.fromARGB(
-                                  255,
-                                  237,
-                                  237,
-                                  255,
+                      return ListView.separated(
+                        separatorBuilder: (BuildContext context, int index) {
+                          return const SizedBox(
+                            height: 16,
+                          );
+                        },
+                        itemCount: repositories.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          final repo = repositories[index];
+                          final String repoName = repo['name'];
+                          final String ownerName = repo['owner']['login'];
+                          final String ownerIconUrl =
+                              repo['owner']['avatar_url'];
+                          return Card(
+                            elevation: 0.5,
+                            color: Colors.white,
+                            child: ListTile(
+                              leading: Container(
+                                height: 50,
+                                width: 50,
+                                decoration: BoxDecoration(
+                                  borderRadius: const BorderRadius.all(
+                                      Radius.circular(10)),
+                                  border: Border.all(
+                                    color: const Color.fromARGB(
+                                      255,
+                                      237,
+                                      237,
+                                      255,
+                                    ),
+                                    width: 1,
+                                  ),
                                 ),
-                                width: 1,
+                                child: ownerIconUrl != null
+                                    ? Image.network(ownerIconUrl)
+                                    : Icon(Icons.person),
                               ),
+                              title: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(repoName,
+                                        style: TextFonts.primaryText),
+                                    const SizedBox(height: 6),
+                                    Text(ownerName),
+                                  ],
+                                ),
+                              ),
+                              trailing: const Icon(Icons.chevron_right),
+                        onTap: () async {
+      try {
+        await Provider.of<GitHubProvider>(_context, listen: false)
+            .fetchBranches(ownerName, repoName);
+
+        Navigator.push(
+          _context,
+          MaterialPageRoute(
+            builder: (context) => RepositoryViewPage(
+              ownerIconUrl: ownerIconUrl,
+              ownerName: ownerName,
+              repoName: repoName,
+            ),
+          ),
+        );
+      } catch (e) {
+        print('Error: $e');
+      }
+    },
+
                             ),
-                            child: ownerIconUrl!=null?Image.network(ownerIconUrl): Icon(Icons.person),
-                          ),
-                          title: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(repoName, style: TextFonts.primaryText),
-                                const SizedBox(height: 6),
-                                 Text(ownerName),
-                              ],
-                            ),
-                          ),
-                          trailing:const Icon(Icons.chevron_right),
-                          onTap: () {
-                           Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => ProfilePage(ownerIconUrl: ownerIconUrl, ownerName: ownerName, repoName: repoName,)),
-      );
-                          },
-                        ),
+                          );
+                        },
                       );
-                    },
-                  );
-                }else {
-            return Center(child: Text('No repositories found.'));
-          }
-                }
-              ),
+                    } else {
+                      return Center(child: Text('No repositories found.'));
+                    }
+                  }),
             )
           ],
         ),

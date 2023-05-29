@@ -1,9 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:git_mobile/services/provider.dart';
 import 'package:http/http.dart' as http;
-import 'package:provider/provider.dart';
 
 class ProjectList{
 Future<List<dynamic>> fetchGitHubProjects(BuildContext context,String accessToken) async {
